@@ -31,12 +31,12 @@ public class OS {
 
     public OS() {
         switch (System.getProperty("os.name")) {
-        case "Windows 7":
-            lastPath = new File(System.getenv("user.dir"));
-            break;
-        case "Linux":
-        default:
-            lastPath = new File(System.getenv("PWD"));
+            case "Windows 7":
+                lastPath = new File(System.getenv("user.dir"));
+                break;
+            case "Linux":
+            default:
+                lastPath = new File(System.getenv("PWD"));
         }
     }
 
@@ -165,6 +165,15 @@ public class OS {
      */
     public static void saveVCF(TextField textField) {
         saveFile(VCF_DESCRIPTION, VCF_DESCRIPTION, VCF_FILTERS, VCF_EXTENSION, textField);
+    }
+
+    /**
+     * Opens a dialog for the user to create a Variant Call File (.vcf). The file is not created
+     * immediately, just stored as text.
+     *
+     */
+    public static File saveVCF() {
+        return saveFile(VCF_DESCRIPTION, VCF_DESCRIPTION, VCF_FILTERS, VCF_EXTENSION);
     }
 
     /**

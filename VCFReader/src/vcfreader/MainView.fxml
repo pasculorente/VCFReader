@@ -5,116 +5,106 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<BorderPane prefHeight="800.0" prefWidth="1024.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="vcfreader.MainViewController">
-    <top>
-        <HBox>
-            <children>
-                <Button id="openButton" mnemonicParsing="false" onAction="#openFile" text="Open" textAlignment="CENTER" />
-            </children>
-            <BorderPane.margin>
-                <Insets />
-            </BorderPane.margin>
-            <padding>
-                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-            </padding>
-        </HBox>
-    </top>
-    <center>
-        <ScrollPane fitToHeight="true" fitToWidth="true" xmlns:fx="http://javafx.com/fxml">
-            <content>
-                <TableView fx:id="variantsTable" xmlns:fx="http://javafx.com/fxml">
-                    <columns>
-                        <TableColumn fx:id="chrColumn" prefWidth="75.0" text="CHROM" />
-                        <TableColumn fx:id="posColumn" prefWidth="75.0" text="POS" />
-                        <TableColumn fx:id="idColumn" prefWidth="75.0" text="ID" />
-                        <TableColumn fx:id="refColumn" prefWidth="75.0" text="REF" />
-                        <TableColumn fx:id="altColumn" prefWidth="75.0" text="ALT" />
-                        <TableColumn fx:id="qualColumn" prefWidth="75.0" text="QUAL" />
-                        <TableColumn fx:id="filterColumn" prefWidth="75.0" text="FILTER" />
-                        <TableColumn fx:id="infoColumn" prefWidth="75.0" text="INFO" />
-                    </columns>
-                </TableView>
-            </content>
-        </ScrollPane>
-    </center>
-    <left>
-        <VBox>
-            <children>
-                <Accordion VBox.vgrow="SOMETIMES" xmlns:fx="http://javafx.com/fxml">
-                    <panes>
-                        <TitledPane animated="false" text="Chromosomes">
-                            <content>
-                                <VBox alignment="CENTER">
-                                    <children>
-                                        <ScrollPane fitToHeight="true" fitToWidth="true" VBox.vgrow="SOMETIMES" xmlns:fx="http://javafx.com/fxml">
-                                            <content>
-                                                <VBox fx:id="contigsFilter" />
-                                            </content>
-                                        </ScrollPane>
-                                        <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectAllContigs" text="All" />
-                                        <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectNoneContigs" text="None" />
-                                    </children>
-                                </VBox>
-                            </content>
-                        </TitledPane>
-                        <TitledPane animated="false" text="Variant">
-                            <content>
-                                <VBox alignment="TOP_CENTER" prefHeight="200.0">
-                                    <children>
-                                        <Label text="Position" />
-                                        <HBox spacing="5.0">
-                                            <children>
-                                                <TextField fx:id="posFrom" onAction="#filter" prefWidth="80.0" promptText="From" HBox.hgrow="SOMETIMES" />
-                                                <TextField fx:id="posTo" onAction="#filter" prefWidth="80.0" promptText="To" HBox.hgrow="SOMETIMES" />
-                                            </children>
-                                        </HBox>
-                                        <Label text="ID" />
-                                        <TextField fx:id="idFilter" onAction="#filter" promptText="id" />
-                                        <Label text="Quality" />
-                                        <HBox spacing="5.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
-                                            <children>
-                                                <TextField fx:id="qualMin" onAction="#filter" prefWidth="80.0" promptText="Min" HBox.hgrow="SOMETIMES" />
-                                                <TextField fx:id="qualMax" onAction="#filter" prefWidth="80.0" promptText="Max" HBox.hgrow="SOMETIMES" />
-                                            </children>
-                                        </HBox>
-                                    </children>
-                                </VBox>
-                            </content>
-                        </TitledPane>
-                        <TitledPane animated="false" text="Filters" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
-                            <content>
-                                <VBox alignment="CENTER">
-                                    <children>
-                                        <ScrollPane fitToHeight="true" fitToWidth="true" VBox.vgrow="SOMETIMES">
-                                            <content>
-                                                <VBox fx:id="filtersFilter" />
-                                            </content>
-                                        </ScrollPane>
-                                        <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectAllFilters" text="All" />
-                                        <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectNoneFilters" text="None" />
-                                    </children>
-                                </VBox>
-                            </content>
-                        </TitledPane>
-                        <TitledPane animated="false" text="Info">
-                            <content>
-                                <VBox id="" fx:id="infoFilters" alignment="TOP_CENTER" />
-                            </content>
-                        </TitledPane>
-                    </panes>
-                </Accordion>
-            </children>
-        </VBox>
-    </left>
-    <bottom>
-        <HBox spacing="5.0">
-            <children>
-                <Label text="Variants:" />
-                <Label fx:id="lines" text="Label" />
-            </children>
-            <BorderPane.margin>
-                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-            </BorderPane.margin>
-        </HBox>
-    </bottom>
+<BorderPane prefHeight="800.0" prefWidth="1024.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="vcfreader.MainViewController">
+  <bottom>
+    <HBox spacing="5.0">
+      <children>
+        <Label text="Variants:" />
+        <Label fx:id="lines" text="Label" />
+      </children>
+      <BorderPane.margin>
+        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+      </BorderPane.margin>
+    </HBox>
+  </bottom>
+  <center>
+    <ScrollPane fx:id="tableContainer" content="$null" fitToHeight="true" fitToWidth="true" />
+  </center>
+  <left>
+    <VBox>
+      <children>
+        <Accordion VBox.vgrow="SOMETIMES">
+          <panes>
+            <TitledPane animated="false" text="Chromosomes">
+              <content>
+                <VBox alignment="CENTER">
+                  <children>
+                    <ScrollPane fitToHeight="true" fitToWidth="true" VBox.vgrow="SOMETIMES">
+                      <content>
+                        <VBox fx:id="contigsFilter" />
+                      </content>
+                    </ScrollPane>
+                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectAllContigs" text="All" />
+                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectNoneContigs" text="None" />
+                  </children>
+                </VBox>
+              </content>
+            </TitledPane>
+            <TitledPane animated="false" text="Variant">
+              <content>
+                <VBox alignment="TOP_CENTER" prefHeight="200.0">
+                  <children>
+                    <Label text="Position" />
+                    <HBox spacing="5.0">
+                      <children>
+                        <TextField fx:id="posFrom" onAction="#filter" prefWidth="80.0" promptText="From" HBox.hgrow="SOMETIMES" />
+                        <TextField fx:id="posTo" onAction="#filter" prefWidth="80.0" promptText="To" HBox.hgrow="SOMETIMES" />
+                      </children>
+                    </HBox>
+                    <Label text="ID" />
+                    <TextField fx:id="idFilter" onAction="#filter" promptText="id" />
+                    <Label text="Quality" />
+                    <HBox spacing="5.0">
+                      <children>
+                        <TextField fx:id="qualMin" onAction="#filter" prefWidth="80.0" promptText="Min" HBox.hgrow="SOMETIMES" />
+                        <TextField fx:id="qualMax" onAction="#filter" prefWidth="80.0" promptText="Max" HBox.hgrow="SOMETIMES" />
+                      </children>
+                    </HBox>
+                  </children>
+                </VBox>
+              </content>
+            </TitledPane>
+            <TitledPane animated="false" text="Filters">
+              <content>
+                <VBox alignment="CENTER">
+                  <children>
+                    <ScrollPane fitToHeight="true" fitToWidth="true" VBox.vgrow="SOMETIMES">
+                      <content>
+                        <VBox fx:id="filtersFilter" />
+                      </content>
+                    </ScrollPane>
+                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectAllFilters" text="All" />
+                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectNoneFilters" text="None" />
+                  </children>
+                </VBox>
+              </content>
+            </TitledPane>
+            <TitledPane animated="false" text="Info">
+              <content>
+                <ScrollPane id="ScrollPane" fitToHeight="true" fitToWidth="true" prefViewportHeight="651.0" prefViewportWidth="166.0">
+                  <content>
+                    <VBox id="" fx:id="infoFilters" alignment="TOP_CENTER" />
+                  </content>
+                </ScrollPane>
+              </content>
+            </TitledPane>
+          </panes>
+        </Accordion>
+      </children>
+    </VBox>
+  </left>
+  <top>
+    <HBox spacing="5.0">
+      <children>
+        <Button id="openButton" mnemonicParsing="false" onAction="#openFile" text="Open" textAlignment="CENTER" />
+        <Button mnemonicParsing="false" onAction="#save" text="Button" />
+      </children>
+      <padding>
+        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+      </padding>
+      <BorderPane.margin>
+        <Insets />
+      </BorderPane.margin>
+    </HBox>
+  </top>
 </BorderPane>

@@ -2,15 +2,24 @@ package vcfreader;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
@@ -34,23 +43,9 @@ public class MainViewController {
     @FXML
     private Label lines;
     @FXML
+    private ScrollPane tableContainer;
     private TableView<Variant> variantsTable;
-    @FXML
-    private TableColumn<Variant, String> chrColumn;
-    @FXML
-    private TableColumn<Variant, Integer> posColumn;
-    @FXML
-    private TableColumn<Variant, String> idColumn;
-    @FXML
-    private TableColumn<Variant, String> refColumn;
-    @FXML
-    private TableColumn<Variant, String> altColumn;
-    @FXML
-    private TableColumn<Variant, Double> qualColumn;
-    @FXML
-    private TableColumn<Variant, String> filterColumn;
-    @FXML
-    private TableColumn infoColumn;
+
     @FXML
     private TextField posFrom;
     @FXML
@@ -63,47 +58,44 @@ public class MainViewController {
     private TextField qualMin;
     @FXML
     private VCFData data;
-    private ArrayList<Variant> filtered;
+    private List<Filter> filters;
 
     /**
      * Initializes the controller class.
      */
     public void initialize() {
         data = new VCFData();
-        filtered = new ArrayList<>();
         lines.setText("");
-        chrColumn.setCellValueFactory(new PropertyValueFactory<>("chrom"));
-        posColumn.setCellValueFactory(new PropertyValueFactory<>("pos"));
-        idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
-        refColumn.setCellValueFactory(new PropertyValueFactory<>("ref"));
-        altColumn.setCellValueFactory(new PropertyValueFactory<>("alt"));
-        qualColumn.setCellValueFactory(new PropertyValueFactory<>("qual"));
-        filterColumn.setCellValueFactory(new PropertyValueFactory<>("filter"));
-        variantsTable.getColumns().setAll(chrColumn, posColumn, idColumn, refColumn,
-                altColumn, qualColumn, filterColumn, infoColumn);
+        filters = new ArrayList<>();
     }
 
     @FXML
     private void openFile() {
         String[] filts = new String[]{"*.vcf"};
-        File f = OS.openFile("Variant Call Format", "Variant Call Format", filts);
+        File f = OS.
+                openFile("Variant Call Format", "Variant Call Format", filts);
         if (f != null) {
-            data.loadVariants(f.getAbsolutePath());
-            lines.setText(data.getVariants().size() + "");
-            data.getInfos().stream().map((info) -> {
-                TableColumn<Variant, String> tc = new TableColumn<>(info.getId());
-                tc.setCellValueFactory((TableColumn.CellDataFeatures<Variant, String> p)
-                        -> new SimpleStringProperty(p.getValue().getInfos().get(
-                                        info.getId())));
-                return tc;
-            }).forEach((tc) -> {
-                infoColumn.getColumns().add(tc);
-            });
+            try {
+                VCFDataParser parser = new VCFDataParser(f.getAbsolutePath());
+                new Thread(parser).start();
+                data = parser.get();
+                restartTable();
+            } catch (InterruptedException | ExecutionException ex) {
+                Logger.getLogger(MainViewController.class.getName()).log(
+                        Level.SEVERE, null, ex);
+            }
+            lines.setText(data.getVariants().size() + " (total: " + data.
+                    getVariants().size() + ")");
             loadContigFilters();
             loadFilterFilters();
             loadInfoFilters();
-            variantsTable.setItems(FXCollections.observableArrayList(data.getVariants()));
         }
+    }
+
+    @FXML
+    private void save() {
+        File f = OS.saveVCF();
+        data.exportVCF(f.getAbsolutePath());
     }
 
     private void loadContigFilters() {
@@ -117,7 +109,8 @@ public class MainViewController {
 //            button.setSelected(true);
 //            contigsFilter.getChildren().add(button);
 //        }
-        data.getContigs().stream().map((contig) -> new ToggleButton(contig)).map((button) -> {
+        data.getContigs().stream().map((contig) -> new ToggleButton(contig)).
+                map((button) -> {
             button.setMaxWidth(Integer.MAX_VALUE);
             return button;
         }).map((button) -> {
@@ -133,22 +126,22 @@ public class MainViewController {
         });
     }
 
-    private void loadFilterFilters() {
-        filtersFilter.getChildren().clear();
-//        for (Filter filter : data.getFilters()) {
-//            ToggleButton button = new ToggleButton(filter.getId());
+//        for (Map<String, String> filter : data.getFilters()) {
+//            ToggleButton button = new ToggleButton(filter.get("Id"));
 //            button.setMaxWidth(Integer.MAX_VALUE);
-//            button.setTooltip(new Tooltip(filter.getDescription()));
+//            button.setTooltip(new Tooltip(filter.get("Description")));
 //            button.setSelected(true);
 //            button.setOnAction((ActionEvent t) -> {
 //                filter();
 //            });
 //            filtersFilter.getChildren().add(button);
 //        }
+    private void loadFilterFilters() {
+        filtersFilter.getChildren().clear();
         data.getFilters().stream().map((filter) -> {
-            ToggleButton button = new ToggleButton(filter.getId());
+            ToggleButton button = new ToggleButton(filter.get("ID"));
             button.setMaxWidth(Integer.MAX_VALUE);
-            button.setTooltip(new Tooltip(filter.getDescription()));
+            button.setTooltip(new Tooltip(filter.get("Description")));
             return button;
         }).map((button) -> {
             button.setSelected(true);
@@ -164,12 +157,15 @@ public class MainViewController {
     }
 
     private void loadInfoFilters() {
+        filters.clear();
         infoFilters.getChildren().clear();
-        for (Info info : data.getInfos()) {
-            Label title = new Label(info.getId());
-            title.setTooltip(new Tooltip(info.getDescription()));
-            switch (info.getType()) {
+        for (int index = 0; index < data.getInfos().size(); index++) {
+            Map<String, String> info = data.getInfos().get(index);
+            Label title = new Label(info.get("ID"));
+            title.setTooltip(new Tooltip(info.get("Description")));
+            switch (info.get("Type")) {
                 case "Integer":
+                case "Float":
                     TextField max = new TextField();
                     max.setPromptText("Max");
                     max.setPrefWidth(80);
@@ -185,14 +181,35 @@ public class MainViewController {
                     HBox hbox = new HBox(min, max);
                     hbox.setSpacing(5);
                     infoFilters.getChildren().addAll(title, hbox);
-                    break;
-                case "Float":
-                    break;
-                case "Flag":
+                    filters.add(new Filter("numeric", index, min, max));
                     break;
                 case "Character":
-                    break;
                 case "String":
+                    TextField value = new TextField();
+                    value.setPromptText("Value");
+                    value.setPrefWidth(165);
+                    value.setOnAction((ActionEvent t) -> {
+                        filter();
+                    });
+                    infoFilters.getChildren().addAll(title, value);
+                    filters.add(new Filter("text", index, value));
+                    break;
+                case "Flag":
+                    ToggleButton yes = new ToggleButton("Yes");
+                    ToggleButton no = new ToggleButton("No");
+                    yes.setOnAction((ActionEvent t) -> {
+                        filter();
+                    });
+                    no.setOnAction((ActionEvent t) -> {
+                        filter();
+                    });
+                    ToggleGroup group = new ToggleGroup();
+                    group.getToggles().addAll(yes, no);
+                    HBox box = new HBox(yes, no);
+                    box.setSpacing(5);
+                    box.setAlignment(Pos.CENTER);
+                    infoFilters.getChildren().addAll(title, box);
+                    filters.add(new Filter("flag", index, yes, no));
                     break;
             }
         }
@@ -232,36 +249,70 @@ public class MainViewController {
 
     @FXML
     private void filter() {
-        // Chromosome filter
-        String[] contigs = selectedContigs();
-        filtered = VCFData.filter(data.getVariants(), "CHROM", contigs);
-        // Position filter
+        // CHROM
+        data.filterChrom(false, selectedContigs());
+        // POS
         if (!posFrom.getText().isEmpty() && !posTo.getText().isEmpty()) {
             try {
-                Integer.valueOf(posFrom.getText());
-                Integer.valueOf(posTo.getText());
-                filtered = VCFData.filter(filtered, "POS", posFrom.getText(), posTo.getText());
+                int min = Integer.valueOf(posFrom.getText());
+                int max = Integer.valueOf(posTo.getText());
+                data.filterPos(true, min, max);
             } catch (NumberFormatException ex) {
-                System.err.println("Bad number format");
+                System.err.println("Bad number format in Position");
             }
         }
-        // ID Filter
-        filtered = VCFData.filter(filtered, "ID", idFilter.getText());
-        // Qual filter
+        // QUAL
         if (!qualMin.getText().isEmpty() && !qualMax.getText().isEmpty()) {
             try {
-                Double.valueOf(qualMin.getText());
-                Double.valueOf(qualMax.getText());
-                filtered = VCFData.filter(filtered, "QUAL", qualMin.getText(), qualMax.getText());
+                double min = Double.valueOf(qualMin.getText());
+                double max = Double.valueOf(qualMax.getText());
+                data.filterQual(true, min, max);
             } catch (NumberFormatException ex) {
-                System.err.println("Bad number format");
+                System.err.println("Bad number format in Quality");
             }
         }
-        // FILTER filter
-        filtered = VCFData.filter(filtered, "FILTER", selectedFilters());
-        variantsTable.getItems().setAll(FXCollections.observableArrayList(filtered));
-        lines.setText(filtered.size() + "");
+        // ID
+        if (!idFilter.getText().isEmpty()) {
+            data.filterId(true, idFilter.getText());
+        }
+        // FILTER
+        data.filterFilter(true, selectedFilters());
+        // INFOS
+        for (Filter f : filters) {
+            switch (f.type) {
+                case "numeric":
+                    String minString = ((TextField) f.nodes[0]).getText();
+                    String maxString = ((TextField) f.nodes[1]).getText();
+                    if (!minString.isEmpty() && !maxString.isEmpty()) {
+                        try {
+                            double max = Double.valueOf(maxString);
+                            double min = Double.valueOf(minString);
+                            data.filterInfoNumeric(true, f.index, min, max);
 
+                        } catch (NumberFormatException ex) {
+                            System.err.println("Bad number: " + minString
+                                    + " or " + maxString);
+                        }
+                    }
+                    break;
+                case "text":
+                    String value = ((TextField) f.nodes[0]).getText();
+                    if (!value.isEmpty()) {
+                        data.filterInfoText(true, f.index, value, false);
+                    }
+                    break;
+                case "flag":
+                    if (((ToggleButton) f.nodes[0]).isSelected()) {
+                        data.filterInfoFlag(true, f.index, true);
+                    } else if (((ToggleButton) f.nodes[1]).isSelected()) {
+                        data.filterInfoFlag(true, f.index, false);
+                    }
+            }
+        }
+        variantsTable.getItems().setAll(FXCollections.observableArrayList(
+                data.getCached()));
+        lines.setText(data.getCached().size() + " (total: " + data.
+                getVariants().size() + ")");
     }
 
     private String[] selectedContigs() {
@@ -269,8 +320,8 @@ public class MainViewController {
         contigsFilter.getChildren().stream().map((node)
                 -> (ToggleButton) node).filter((button)
                         -> (button.isSelected())).forEach((button) -> {
-                    cs.add(button.getText());
-                });
+            cs.add(button.getText());
+        });
         String[] ret = new String[cs.size()];
         for (int i = 0; i < cs.size(); i++) {
             ret[i] = cs.get(i);
@@ -283,12 +334,73 @@ public class MainViewController {
         filtersFilter.getChildren().stream().map((node)
                 -> (ToggleButton) node).filter((button)
                         -> (button.isSelected())).forEach((button) -> {
-                    fs.add(button.getText());
-                });
+            fs.add(button.getText());
+        });
         String[] ret = new String[fs.size()];
         for (int i = 0; i < fs.size(); i++) {
             ret[i] = fs.get(i);
         }
         return ret;
+    }
+
+    private void restartTable() {
+        TableView<Variant> table = new TableView<>(FXCollections.
+                observableArrayList(data.getVariants()));
+        TableColumn<Variant, String> chrColumn = new TableColumn<>("CHR");
+        TableColumn<Variant, Integer> posColumn = new TableColumn<>("POS");
+        TableColumn<Variant, String> idColumn = new TableColumn<>("ID");
+        TableColumn<Variant, String> refColumn = new TableColumn<>("REF");
+        TableColumn<Variant, String> altColumn = new TableColumn<>("ALT");
+        TableColumn<Variant, Double> qualColumn = new TableColumn<>("QUAL");
+        TableColumn<Variant, String> filterColumn = new TableColumn<>("FILTER");
+        TableColumn infoColumn = new TableColumn("INFO");
+        chrColumn.setCellValueFactory(new PropertyValueFactory<>("chrom"));
+        posColumn.setCellValueFactory(new PropertyValueFactory<>("pos"));
+        idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
+        refColumn.setCellValueFactory(new PropertyValueFactory<>("ref"));
+        altColumn.setCellValueFactory(new PropertyValueFactory<>("alt"));
+        qualColumn.setCellValueFactory(new PropertyValueFactory<>("qual"));
+        filterColumn.setCellValueFactory(new PropertyValueFactory<>("filter"));
+        // Fill info column
+        for (int i = 0; i < data.getInfos().size(); i++) {
+            final int index = i;
+            TableColumn<Variant, String> iColumn = new TableColumn<>(data.
+                    getInfos().get(i).get("ID"));
+            iColumn.setCellValueFactory((
+                    TableColumn.CellDataFeatures<Variant, String> p)
+                    -> new SimpleStringProperty(p.getValue().getInfos().get(
+                                    index)));
+            infoColumn.getColumns().add(iColumn);
+        }
+        table.getColumns().setAll(chrColumn, posColumn, idColumn,
+                refColumn, altColumn, qualColumn, filterColumn, infoColumn);
+        tableContainer.setContent(table);
+        variantsTable = table;
+    }
+
+    class Filter {
+
+        private final String type;
+        private final Node[] nodes;
+        private final int index;
+
+        public Filter(String type, int index, Node... nodes) {
+            this.type = type;
+            this.nodes = nodes;
+            this.index = index;
+        }
+
+        public Node[] getNodes() {
+            return nodes;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public int getIndex() {
+            return index;
+        }
+
     }
 }

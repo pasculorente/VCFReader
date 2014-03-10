@@ -1,10 +1,11 @@
 package vcfreader;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -14,16 +15,14 @@ import java.util.logging.Logger;
  */
 public class VCFData {
 
-    static Header toHeader(String line) {
-        String[] keyvalue = line.substring(2).split("=");
-        return new Header(keyvalue[0], keyvalue[1]);
-    }
-
-    private final ArrayList<Info> infos;
-    private final ArrayList<Format> formats;
-    private final ArrayList<Variant> variants;
-    private final ArrayList<Filter> filters;
-    private final ArrayList<String> contigs;
+    private final List<Map<String, String>> infos;
+    private final List<Map<String, String>> formats;
+    private final List<Map<String, String>> filters;
+    private final List<Variant> variants;
+    private final List<String> contigs;
+    private final List<String> samples;
+    private final List<String> headers;
+    private List<Variant> cached;
 
     public VCFData() {
         this.infos = new ArrayList<>();
@@ -31,226 +30,192 @@ public class VCFData {
         this.formats = new ArrayList<>();
         this.filters = new ArrayList<>();
         this.contigs = new ArrayList<>();
+        this.samples = new ArrayList<>();
+        this.headers = new ArrayList<>();
+        cached = variants;
     }
 
-    static Variant toVariant(String line) {
-        String[] fields = line.split("\t");
-        Variant v = new Variant(fields[0], Integer.valueOf(fields[1]), fields[2], fields[3],
-                fields[4],
-                Double.valueOf(fields[5]), fields[6]);
-        String[] infos = fields[7].split(";");
-        for (String info : infos) {
-            String[] keyvalue = info.split("=");
-            if (keyvalue.length == 1) {
-                v.getInfos().put(keyvalue[0], "Yes");
-            } else {
-                v.getInfos().put(keyvalue[0], keyvalue[1]);
-            }
-        }
-        return v;
-    }
-
-    static Format toFormat(String line) {
-        String line2 = line.substring(10);
-        // between = and ,
-        int equals = line2.indexOf("=");
-        int comma = line2.indexOf(",");
-        String id = line2.substring(equals + 1, comma);
-        line2 = line2.substring(comma + 1);
-        equals = line2.indexOf("=");
-        comma = line2.indexOf(",");
-        String number = line2.substring(equals + 1, comma);
-        line2 = line2.substring(comma + 1);
-        equals = line2.indexOf("=");
-        comma = line2.indexOf(",");
-        String type = line2.substring(equals + 1, comma);
-        line2 = line2.substring(comma + 1);
-        int squote = line2.indexOf("\"");
-        String desc = line2.substring(squote + 1, line2.length() - 2);
-        return new Format(id, number, type, desc);
-    }
-
-    static Info toInfo(String line) {
-        String line2 = line.substring(8);
-        // between = and ,
-        int equals = line2.indexOf("=");
-        int comma = line2.indexOf(",");
-        String id = line2.substring(equals + 1, comma);
-        line2 = line2.substring(comma + 1);
-        equals = line2.indexOf("=");
-        comma = line2.indexOf(",");
-        String number = line2.substring(equals + 1, comma);
-        line2 = line2.substring(comma + 1);
-        equals = line2.indexOf("=");
-        comma = line2.indexOf(",");
-        String type = line2.substring(equals + 1, comma);
-        line2 = line2.substring(comma + 1);
-        int squote = line2.indexOf("\"");
-        String desc = line2.substring(squote + 1, line2.length() - 2);
-        return new Info(id, number, type, desc);
-    }
-
-    static Filter toFilter(String line) {
-        String line2 = line.substring(10);
-        // between = and ,
-        int equals = line2.indexOf("=");
-        int comma = line2.indexOf(",");
-        String id = line2.substring(equals + 1, comma);
-        line2 = line2.substring(comma + 1);
-        int squote = line2.indexOf("\"");
-        String desc = line2.substring(squote + 1, line2.length() - 2);
-        return new Filter(id, desc);
-    }
-
-    public ArrayList<Info> getInfos() {
+    public List<Map<String, String>> getInfos() {
         return infos;
     }
 
-    public ArrayList<Variant> getVariants() {
+    public List<Variant> getVariants() {
         return variants;
     }
 
-    public ArrayList<Format> getFormats() {
+    public List<Map<String, String>> getFormats() {
         return formats;
     }
 
-    ArrayList<Filter> getFilters() {
+    public List<Map<String, String>> getFilters() {
         return filters;
     }
 
-    static ArrayList<Variant> filter(ArrayList<Variant> variants, String type, String... filter) {
-        ArrayList<Variant> filtered = new ArrayList<>();
-        switch (type) {
-            case "CHROM":
-                for (Variant variant : variants) {
-                    for (String chr : filter) {
-                        if (variant.getChrom().equals(chr)) {
-                            filtered.add(variant);
-                            break;
-                        }
-                    }
-                }
-                break;
-            case "ID":
-                if (filter.length > 1) {
-                    throw new IllegalArgumentException();
-                }
-                variants.stream().filter((variant) -> (variant.getId().contains(filter[0]))).forEach((variant) -> {
-                    filtered.add(variant);
-                });
-                break;
-            case "REF":
-                if (filter.length > 1) {
-                    throw new IllegalArgumentException();
-                }
-                variants.stream().filter((variant) -> (variant.getRef().contains(filter[0]))).forEach((variant) -> {
-                    filtered.add(variant);
-                });
-                break;
-            case "ALT":
-                if (filter.length > 1) {
-                    throw new IllegalArgumentException();
-                }
-                variants.stream().filter((variant) -> (variant.getAlt().contains(filter[0]))).forEach((variant) -> {
-                    filtered.add(variant);
-                });
-                break;
-            case "POS":
-                int start = Integer.valueOf(filter[0]);
-                int end = Integer.valueOf(filter[1]);
-                variants.stream().filter((variant) -> (variant.getPos() >= start && variant.getPos() <= end)).forEach((variant) -> {
-                    filtered.add(variant);
-                });
-                break;
-            case "QUAL":
-                double min = Double.valueOf(filter[0]);
-                double max = Double.valueOf(filter[1]);
-                variants.stream().filter((variant) -> (variant.getQual() >= min && variant.getQual() <= max)).forEach((variant) -> {
-                    filtered.add(variant);
-                });
-                break;
-            case "FILTER":
-                for (Variant variant : variants) {
-                    for (String f : filter) {
-                        if (variant.getFilter().equals(f)) {
-                            filtered.add(variant);
-                            break;
-                        }
-                    }
-                }
-        }
-        return filtered;
-    }
-
-    ArrayList<String> getContigs() {
+    public List<String> getContigs() {
         return contigs;
     }
 
-    static String toContig(String line) {
-        String line2 = line.substring(9);
-        int equals = line2.indexOf("=");
-        int comma = line2.indexOf(",");
-        return line2.substring(equals + 1, comma);
+    public List<String> getSamples() {
+        return samples;
     }
 
-    void loadVariants(String file) {
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            variants.clear();
-            infos.clear();
-            formats.clear();
-            filters.clear();
-            contigs.clear();
-            String line;
-            while ((line = br.readLine()) != null) {
-                if (line.startsWith("#")) {
-                    if (line.startsWith("##INFO")) {
-                        infos.add(toInfo(line));
-                    } else if (line.startsWith("##FORMAT")) {
-                        formats.add(toFormat(line));
-                    } else if (line.startsWith("##FILTER")) {
-                        filters.add(toFilter(line));
-                    } else if (line.startsWith("##contig")) {
-                        contigs.add(toContig(line));
-                    }
-                } else {
-                    variants.add(toVariant(line));
+    public List<Variant> getCached() {
+        return cached;
+    }
+
+    public List<String> getHeaders() {
+        return headers;
+    }
+
+    public int indexOfInfo(String id) {
+        for (int i = 0; i < infos.size(); i++) {
+            if (infos.get(i).get("ID").equals(id)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public List<Variant> filterChrom(boolean cache, String... chroms) {
+        List<Variant> origin = cache ? cached : variants;
+        cached = new ArrayList<>();
+        for (Variant variant : origin) {
+            for (String chr : chroms) {
+                if (variant.getChrom().equals(chr)) {
+                    cached.add(variant);
+                    break;
                 }
             }
-            filters.add(0, new Filter("PASS", "All filters passed"));
-            if (contigs.isEmpty()) {
-                inferContigs();
+        }
+        return cached;
+    }
+
+    public List<Variant> filterPos(boolean cache, int min, int max) {
+        List<Variant> origin = cache ? cached : variants;
+        cached = new ArrayList<>();
+        for (Variant variant : origin) {
+            if (min <= variant.getPos() && variant.getPos() <= max) {
+                cached.add(variant);
             }
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(VCFData.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return cached;
+    }
+
+    public List<Variant> filterId(boolean cache, String value) {
+        List<Variant> origin = cache ? cached : variants;
+        cached = new ArrayList<>();
+        for (Variant variant : origin) {
+            if (variant.getId().contains(value)) {
+                cached.add(variant);
+            }
+        }
+        return cached;
+    }
+
+    public List<Variant> filterRef(boolean cache, String value) {
+        List<Variant> origin = cache ? cached : variants;
+        cached = new ArrayList<>();
+        for (Variant variant : origin) {
+            if (variant.getRef().contains(value)) {
+                cached.add(variant);
+            }
+        }
+        return cached;
+    }
+
+    public List<Variant> filterAlt(boolean cache, String value) {
+        List<Variant> origin = cache ? cached : variants;
+        cached = new ArrayList<>();
+        for (Variant variant : origin) {
+            if (variant.getAlt().contains(value)) {
+                cached.add(variant);
+            }
+        }
+        return cached;
+    }
+
+    public List<Variant> filterQual(boolean cache, double min, double max) {
+        List<Variant> origin = cache ? cached : variants;
+        cached = new ArrayList<>();
+        for (Variant variant : origin) {
+            if (min <= variant.getQual() && variant.getQual() <= max) {
+                cached.add(variant);
+            }
+        }
+        return cached;
+    }
+
+    public List<Variant> filterFilter(boolean cache, String... filters) {
+        List<Variant> origin = cache ? cached : variants;
+        cached = new ArrayList<>();
+        for (Variant variant : origin) {
+            for (String chr : filters) {
+                if (variant.getFilter().equals(chr)) {
+                    cached.add(variant);
+                    break;
+                }
+            }
+        }
+        return cached;
+    }
+
+    public List<Variant> filterInfoNumeric(boolean cache, int index, double min,
+            double max) {
+        List<Variant> origin = cache ? cached : variants;
+        cached = new ArrayList<>();
+        for (Variant variant : origin) {
+            String[] values = variant.getInfos().get(index).split(",");
+            for (String v : values) {
+                double d = Double.valueOf(v);
+                if (min <= d && d <= max) {
+                    cached.add(variant);
+                }
+            }
+        }
+        return cached;
+    }
+
+    public List<Variant> filterInfoText(boolean cache, int index, String value,
+            boolean match) {
+        List<Variant> origin = cache ? cached : variants;
+        cached = new ArrayList<>();
+        for (Variant variant : origin) {
+            if (!match && variant.getInfos().get(index).contains(value)) {
+                cached.add(variant);
+            } else if (match && variant.getInfos().get(index).equals(value)) {
+                cached.add(variant);
+            }
+
+        }
+        return cached;
+    }
+
+    public List<Variant> filterInfoFlag(boolean cache, int index, boolean yes) {
+        List<Variant> origin = cache ? cached : variants;
+        cached = new ArrayList<>();
+        for (Variant variant : origin) {
+            if (yes == variant.getInfos().get(index).equals("Yes")) {
+                cached.add(variant);
+            }
+        }
+        return cached;
+    }
+
+    public void exportVCF(String file) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
+            for (String head : headers) {
+                bw.write(head);
+                bw.newLine();
+            }
+
+            for (Variant variant : cached) {
+                bw.write(variant + "");
+                bw.newLine();
+            }
         } catch (IOException ex) {
             Logger.getLogger(VCFData.class.getName()).log(Level.SEVERE, null, ex);
         }
-    }
 
-    @Override
-    public String toString() {
-        String ret = "";
-        ret += "Infos\n"
-                + "----------------------\n"
-                + "id\tnumber\ttype\tdesc\n";
-        ret = infos.stream().map((info) -> info.getId() + "\t" + info.getNumber() + "\t" + info.getType() + "\t"
-                + info.getDescription() + "\n").reduce(ret, String::concat);
-        ret += "\nFormats\n"
-                + "----------------------\n"
-                + "id\tnumber\ttype\tdesc\n";
-        ret = formats.stream().map((format) -> format.getId() + "\t" + format.getNumber() + "\t" + format.getType() + "\t"
-                + format.getDescription() + "\n").reduce(ret, String::concat);
-        ret += "\nFilters\n"
-                + "----------------------\n"
-                + "id\tdesc\n";
-        ret = filters.stream().map((filter) -> filter.getId() + "\t" + filter.getDescription() + "\n").reduce(ret, String::concat);
-        return ret;
-    }
-
-    private void inferContigs() {
-        variants.stream().filter((v) -> (!contigs.contains(v.getChrom()))).forEach((v) -> {
-            contigs.add(v.getChrom());
-        });
     }
 
 }

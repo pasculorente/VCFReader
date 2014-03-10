@@ -1,6 +1,7 @@
 package vcfreader;
 
-import java.util.TreeMap;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -11,9 +12,12 @@ public class Variant {
     private final String chrom, id, ref, alt, filter;
     private final int pos;
     private final double qual;
-    private final TreeMap<String, String> infos;
+    private final List<String> infos;
+    private final List<List<String>> samples;
 
-    Variant(String chrom, int pos, String id, String ref, String alt, double qual, String filter) {
+//    private final Map<String, String> infos;
+    Variant(String chrom, int pos, String id, String ref, String alt, double qual, String filter,
+            int infos, int samples, int formats) {
         this.chrom = chrom;
         this.pos = pos;
         this.id = id;
@@ -21,7 +25,19 @@ public class Variant {
         this.alt = alt;
         this.qual = qual;
         this.filter = filter;
-        this.infos = new TreeMap<>();
+        this.infos = new ArrayList<>();
+        for (int i = 0; i < infos; i++) {
+            this.infos.add("");
+        }
+        this.samples = new ArrayList<>();
+        for (int i = 0; i < samples; i++) {
+            List<String> fts = new ArrayList<>();
+            for (int j = 0; j < formats; j++) {
+                fts.add("");
+            }
+            this.samples.add(fts);
+        }
+
     }
 
     public String getChrom() {
@@ -52,7 +68,23 @@ public class Variant {
         return qual;
     }
 
-    public TreeMap<String, String> getInfos() {
+    public List<String> getInfos() {
         return infos;
     }
+
+    public List<List<String>> getSamples() {
+        return samples;
+    }
+
+    @Override
+    public String toString() {
+        String ret = "";
+        ret += chrom + "\t" + pos + "\t" + id + "\t" + ref + "\t" + alt + "\t" + qual + "\t"
+                + filter;
+        for (String info : infos) {
+
+        }
+        return ret;
+    }
+
 }
