@@ -2,3 +2,7 @@
 #openButton{
     -fx-graphic: url("img/open.png");
 }
+
+#saveButton {
+    -fx-graphic: url("img/save.png");
+}
