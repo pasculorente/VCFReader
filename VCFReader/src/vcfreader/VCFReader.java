@@ -12,6 +12,8 @@ import javafx.stage.Stage;
  */
 public class VCFReader extends Application {
 
+    static Stage stage;
+
     /**
      * @param args the command line arguments
      */
@@ -28,6 +30,10 @@ public class VCFReader extends Application {
         stage.setScene(scene);
         stage.setTitle("VCF Reader");
         stage.show();
+        VCFReader.stage = stage;
     }
 
+    static void setTitle(String title) {
+        stage.setTitle("VCF Reader - " + title);
+    }
 }

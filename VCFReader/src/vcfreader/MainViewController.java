@@ -44,8 +44,6 @@ public class MainViewController {
     private Label lines;
     @FXML
     private ScrollPane tableContainer;
-    private TableView<Variant> variantsTable;
-
     @FXML
     private TextField posFrom;
     @FXML
@@ -59,6 +57,7 @@ public class MainViewController {
     @FXML
     private VCFData data;
     private List<Filter> filters;
+    private TableView<Variant> variantsTable;
 
     /**
      * Initializes the controller class.
@@ -75,6 +74,7 @@ public class MainViewController {
         File f = OS.
                 openFile("Variant Call Format", "Variant Call Format", filts);
         if (f != null) {
+            VCFReader.setTitle(f.getAbsolutePath());
             try {
                 VCFDataParser parser = new VCFDataParser(f.getAbsolutePath());
                 new Thread(parser).start();
@@ -290,8 +290,7 @@ public class MainViewController {
                             data.filterInfoNumeric(true, f.index, min, max);
 
                         } catch (NumberFormatException ex) {
-                            System.err.println("Bad number: " + minString
-                                    + " or " + maxString);
+                            System.err.println("Bad number: " + minString + " or " + maxString);
                         }
                     }
                     break;
@@ -364,16 +363,36 @@ public class MainViewController {
         // Fill info column
         for (int i = 0; i < data.getInfos().size(); i++) {
             final int index = i;
-            TableColumn<Variant, String> iColumn = new TableColumn<>(data.
-                    getInfos().get(i).get("ID"));
-            iColumn.setCellValueFactory((
-                    TableColumn.CellDataFeatures<Variant, String> p)
-                    -> new SimpleStringProperty(p.getValue().getInfos().get(
-                                    index)));
+            TableColumn<Variant, String> iColumn = new TableColumn<>(data.getInfos().get(i).
+                    get("ID"));
+            iColumn.setCellValueFactory((TableColumn.CellDataFeatures<Variant, String> p)
+                    -> new SimpleStringProperty(p.getValue().getInfos().get(index)));
             infoColumn.getColumns().add(iColumn);
         }
         table.getColumns().setAll(chrColumn, posColumn, idColumn,
                 refColumn, altColumn, qualColumn, filterColumn, infoColumn);
+        // Fill formats
+        if (!data.getSamples().isEmpty()) {
+            TableColumn fColumn = new TableColumn("FORMAT");
+            for (int i = 0; i < data.getSamples().size(); i++) {
+                TableColumn sColumn = new TableColumn(data.getSamples().get(i));
+                for (int j = 0; j < data.getFormats().size(); j++) {
+                    TableColumn<Variant, String> qColumn = new TableColumn<>(data.getFormats().
+                            get(j).get("ID"));
+                    final int sIndex = i;
+                    final int fIndex = j;
+                    qColumn.setCellValueFactory((
+                            TableColumn.CellDataFeatures<Variant, String> p) -> {
+                        return new SimpleStringProperty(p.getValue().getSamples().get(sIndex).get(
+                                fIndex));
+                    });
+                    sColumn.getColumns().add(qColumn);
+                }
+                fColumn.getColumns().add(sColumn);
+            }
+            table.getColumns().add(fColumn);
+        }
+        table.setSortPolicy((TableView<Variant> p) -> false);
         tableContainer.setContent(table);
         variantsTable = table;
     }

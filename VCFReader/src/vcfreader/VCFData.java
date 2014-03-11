@@ -76,6 +76,15 @@ public class VCFData {
         return -1;
     }
 
+    public int indexOfFormat(String id) {
+        for (int i = 0; i < formats.size(); i++) {
+            if (formats.get(i).get("ID").equals(id)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     public List<Variant> filterChrom(boolean cache, String... chroms) {
         List<Variant> origin = cache ? cached : variants;
         cached = new ArrayList<>();
@@ -209,8 +218,48 @@ public class VCFData {
             }
 
             for (Variant variant : cached) {
-                bw.write(variant + "");
+                // Variant
+                bw.write(variant.getChrom() + "\t" + variant.getPos() + "\t" + variant.getId()
+                        + "\t" + variant.getRef() + "\t" + variant.getAlt()
+                        + "\t" + variant.getQual() + "\t" + variant.getFilter() + "\t");
+                // Info
+                for (int i = 0; i < infos.size(); i++) {
+                    if (!variant.getInfos().get(i).isEmpty()) {
+                        bw.write(infos.get(i).get("ID"));
+                        if (!infos.get(i).get("Type").equals("Flag")) {
+                            bw.write("=" + variant.getInfos().get(i));
+                        }
+                        if (i < infos.size() - 1) {
+                            bw.write(";");
+                        }
+                    }
+                }
+                // Formats
+                if (!samples.isEmpty()) {
+                    // Write format column
+                    bw.write("\t");
+                    for (int i = 0; i < formats.size(); i++) {
+                        bw.write(formats.get(i).get("ID"));
+                        if (i < formats.size() - 1) {
+                            bw.write(":");
+                        }
+                    }
+                    bw.write("\t");
+                    // Write samples columns
+                    for (int i = 0; i < samples.size(); i++) {
+                        for (int j = 0; j < formats.size(); j++) {
+                            bw.write(variant.getSamples().get(i).get(j));
+                            if (j < formats.size() - 1) {
+                                bw.write(":");
+                            }
+                        }
+                        if (i < samples.size() - 1) {
+                            bw.write("\t");
+                        }
+                    }
+                }
                 bw.newLine();
+
             }
         } catch (IOException ex) {
             Logger.getLogger(VCFData.class.getName()).log(Level.SEVERE, null, ex);

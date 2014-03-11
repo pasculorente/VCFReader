@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -13,14 +12,11 @@ import javafx.concurrent.Task;
 
 /**
  *
- * @author uichuimi03
+ * @author Pascual Lorente Arencibia
  */
 public class VCFDataParser extends Task<VCFData> {
 
     private final String vcfFile;
-    private List<Map<String, String>> infos;
-    private List<String> samples;
-    private List<Map<String, String>> formats;
     private VCFData data;
 
     public VCFDataParser(String vcfFile) {
@@ -30,9 +26,6 @@ public class VCFDataParser extends Task<VCFData> {
     @Override
     protected VCFData call() {
         data = new VCFData();
-        infos = data.getInfos();
-        samples = data.getSamples();
-        formats = data.getFormats();
         try (BufferedReader br = new BufferedReader(new FileReader(vcfFile))) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -77,11 +70,9 @@ public class VCFDataParser extends Task<VCFData> {
 
     Variant toVariant(String line) {
         String[] fields = line.split("\t");
-        Variant v
-                = new Variant(fields[0], Integer.valueOf(fields[1]), fields[2],
-                        fields[3], fields[4], Double.valueOf(fields[5]),
-                        fields[6],
-                        infos.size(), samples.size(), formats.size());
+        Variant v = new Variant(fields[0], Integer.valueOf(fields[1]), fields[2], fields[3],
+                fields[4], Double.valueOf(fields[5]), fields[6], data.getInfos().size(), data.
+                getSamples().size(), data.getFormats().size());
         String[] inf = fields[7].split(";");
         for (String info : inf) {
             String[] keyvalue = info.split("=");
@@ -91,6 +82,17 @@ public class VCFDataParser extends Task<VCFData> {
             } else {
                 v.getInfos().set(index, keyvalue[1]);
             }
+        }
+        if (fields.length > 8) {
+            String[] fts = fields[8].split(":");
+            for (int i = 0; i < data.getSamples().size(); i++) {
+                String[] values = fields[i + 9].split(":");
+                for (int j = 0; j < values.length; j++) {
+                    int index = data.indexOfFormat(fts[j]);
+                    v.getSamples().get(i).set(index, values[j]);
+                }
+            }
+
         }
         return v;
     }

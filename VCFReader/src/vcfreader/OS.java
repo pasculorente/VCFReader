@@ -161,7 +161,7 @@ public class OS {
      * Opens a dialog for the user to create a Variant Call File (.vcf). The file is not created
      * immediately, just stored as text.
      *
-     * @param textField textField containig VCF file name.
+     * @param textField textField containing VCF file name.
      */
     public static void saveVCF(TextField textField) {
         saveFile(VCF_DESCRIPTION, VCF_DESCRIPTION, VCF_FILTERS, VCF_EXTENSION, textField);
@@ -171,6 +171,7 @@ public class OS {
      * Opens a dialog for the user to create a Variant Call File (.vcf). The file is not created
      * immediately, just stored as text.
      *
+     * @return the file or null if user canceled
      */
     public static File saveVCF() {
         return saveFile(VCF_DESCRIPTION, VCF_DESCRIPTION, VCF_FILTERS, VCF_EXTENSION);
@@ -180,7 +181,7 @@ public class OS {
      * Opens a dialog for the user to create a Tabular Separated Vaules file (.tsv). The file is not
      * created immediately, just stored as text.
      *
-     * @param textField textField containig TSV file name.
+     * @param textField textField containing TSV file name.
      */
     public static void saveTSV(TextField textField) {
         saveFile(TSV_DESCRIPTION, TSV_DESCRIPTION, TSV_FILTERS, TSV_EXTENSION, textField);

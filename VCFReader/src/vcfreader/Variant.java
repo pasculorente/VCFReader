@@ -76,15 +76,4 @@ public class Variant {
         return samples;
     }
 
-    @Override
-    public String toString() {
-        String ret = "";
-        ret += chrom + "\t" + pos + "\t" + id + "\t" + ref + "\t" + alt + "\t" + qual + "\t"
-                + filter;
-        for (String info : infos) {
-
-        }
-        return ret;
-    }
-
 }
