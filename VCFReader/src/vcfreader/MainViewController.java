@@ -70,9 +70,7 @@ public class MainViewController {
 
     @FXML
     private void openFile() {
-        String[] filts = new String[]{"*.vcf"};
-        File f = OS.
-                openFile("Variant Call Format", "Variant Call Format", filts);
+        File f = OS.openVCF(VCFReader.getStage());
         if (f != null) {
             VCFReader.setTitle(f.getAbsolutePath());
             try {
@@ -94,7 +92,7 @@ public class MainViewController {
 
     @FXML
     private void save() {
-        File f = OS.saveVCF();
+        File f = OS.saveVCF(VCFReader.getStage());
         data.exportVCF(f.getAbsolutePath());
     }
 

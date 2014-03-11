@@ -12,13 +12,20 @@ import javafx.stage.Stage;
  */
 public class VCFReader extends Application {
 
-    static Stage stage;
+    private static Stage stage;
 
     /**
      * @param args the command line arguments
      */
     public static void main(String[] args) {
         launch(args);
+    }
+
+    /**
+     * @return the stage
+     */
+    public static Stage getStage() {
+        return stage;
     }
 
     @Override
@@ -34,6 +41,6 @@ public class VCFReader extends Application {
     }
 
     static void setTitle(String title) {
-        stage.setTitle("VCF Reader - " + title);
+        getStage().setTitle("VCF Reader - " + title);
     }
 }
