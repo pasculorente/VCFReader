@@ -9,21 +9,25 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.concurrent.WorkerStateEvent;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
-import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
+import javafx.stage.Window;
 
 /**
  * FXML Controller class
@@ -36,10 +40,12 @@ public class MainViewController {
     private TextField input;
     @FXML
     private VBox contigsFilter;
-    @FXML
-    private VBox filtersFilter;
+//    @FXML
+//    private VBox filtersFilter;
     @FXML
     private VBox infoFilters;
+    @FXML
+    private TextField filter;
     @FXML
     private Label lines;
     @FXML
@@ -55,44 +61,57 @@ public class MainViewController {
     @FXML
     private TextField qualMin;
     @FXML
+    private ProgressBar progress;
+    @FXML
+    private Button saveButton;
+    private VCFDataParser parser;
     private VCFData data;
     private List<Filter> filters;
     private TableView<Variant> variantsTable;
+    private static File lastPath;
+
+    public static final String VCF_EXTENSION = ".vcf";
+    public static final String VCF_DESCRIPTION = "Variant Call Format";
+    public static final String[] VCF_FILTERS = new String[]{"*.vcf"};
 
     /**
      * Initializes the controller class.
      */
     public void initialize() {
+        saveButton.setDisable(true);
         data = new VCFData();
         lines.setText("");
         filters = new ArrayList<>();
+        switch (System.getProperty("os.name")) {
+            case "Windows 7":
+                if (System.getenv("user.dir") != null) {
+                    lastPath = new File(System.getenv("user.dir"));
+                }
+                break;
+            case "Linux":
+            default:
+                lastPath = new File(System.getenv("PWD"));
+        }
     }
 
     @FXML
     private void openFile() {
-        File f = OS.openVCF(VCFReader.getStage());
+        File f = openVCF(VCFReader.getStage());
         if (f != null) {
             VCFReader.setTitle(f.getAbsolutePath());
-            try {
-                VCFDataParser parser = new VCFDataParser(f.getAbsolutePath());
-                new Thread(parser).start();
-                data = parser.get();
+            parser = new VCFDataParser(f.getAbsolutePath());
+            parser.setOnSucceeded((WorkerStateEvent t) -> {
                 restartTable();
-            } catch (InterruptedException | ExecutionException ex) {
-                Logger.getLogger(MainViewController.class.getName()).log(
-                        Level.SEVERE, null, ex);
-            }
-            lines.setText(data.getVariants().size() + " (total: " + data.
-                    getVariants().size() + ")");
-            loadContigFilters();
-            loadFilterFilters();
-            loadInfoFilters();
+            });
+            progress.progressProperty().bind(parser.progressProperty());
+            lines.textProperty().bind(parser.messageProperty());
+            new Thread(parser).start();
         }
     }
 
     @FXML
     private void save() {
-        File f = OS.saveVCF(VCFReader.getStage());
+        File f = saveVCF(VCFReader.getStage());
         data.exportVCF(f.getAbsolutePath());
     }
 
@@ -124,43 +143,13 @@ public class MainViewController {
         });
     }
 
-//        for (Map<String, String> filter : data.getFilters()) {
-//            ToggleButton button = new ToggleButton(filter.get("Id"));
-//            button.setMaxWidth(Integer.MAX_VALUE);
-//            button.setTooltip(new Tooltip(filter.get("Description")));
-//            button.setSelected(true);
-//            button.setOnAction((ActionEvent t) -> {
-//                filter();
-//            });
-//            filtersFilter.getChildren().add(button);
-//        }
-    private void loadFilterFilters() {
-        filtersFilter.getChildren().clear();
-        data.getFilters().stream().map((filter) -> {
-            ToggleButton button = new ToggleButton(filter.get("ID"));
-            button.setMaxWidth(Integer.MAX_VALUE);
-            button.setTooltip(new Tooltip(filter.get("Description")));
-            return button;
-        }).map((button) -> {
-            button.setSelected(true);
-            return button;
-        }).map((button) -> {
-            button.setOnAction((ActionEvent t) -> {
-                filter();
-            });
-            return button;
-        }).forEach((button) -> {
-            filtersFilter.getChildren().add(button);
-        });
-    }
-
     private void loadInfoFilters() {
         filters.clear();
         infoFilters.getChildren().clear();
         for (int index = 0; index < data.getInfos().size(); index++) {
             Map<String, String> info = data.getInfos().get(index);
-            Label title = new Label(info.get("ID"));
-            title.setTooltip(new Tooltip(info.get("Description")));
+            // Label title = new Label(info.get("ID"));
+            //title.setTooltip(new Tooltip(info.get("Description")));
             switch (info.get("Type")) {
                 case "Integer":
                 case "Float":
@@ -171,25 +160,25 @@ public class MainViewController {
                         filter();
                     });
                     TextField min = new TextField();
-                    min.setPromptText("Min");
+                    min.setPromptText(info.get("ID"));
                     min.setPrefWidth(80);
                     min.setOnAction((ActionEvent t) -> {
                         filter();
                     });
                     HBox hbox = new HBox(min, max);
                     hbox.setSpacing(5);
-                    infoFilters.getChildren().addAll(title, hbox);
+                    infoFilters.getChildren().addAll(hbox);
                     filters.add(new Filter("numeric", index, min, max));
                     break;
                 case "Character":
                 case "String":
                     TextField value = new TextField();
-                    value.setPromptText("Value");
+                    value.setPromptText(info.get("ID"));
                     value.setPrefWidth(165);
                     value.setOnAction((ActionEvent t) -> {
                         filter();
                     });
-                    infoFilters.getChildren().addAll(title, value);
+                    infoFilters.getChildren().addAll(value);
                     filters.add(new Filter("text", index, value));
                     break;
                 case "Flag":
@@ -203,10 +192,11 @@ public class MainViewController {
                     });
                     ToggleGroup group = new ToggleGroup();
                     group.getToggles().addAll(yes, no);
-                    HBox box = new HBox(yes, no);
+                    Label title = new Label(info.get("ID"));
+                    HBox box = new HBox(title, yes, no);
                     box.setSpacing(5);
                     box.setAlignment(Pos.CENTER);
-                    infoFilters.getChildren().addAll(title, box);
+                    infoFilters.getChildren().addAll(box);
                     filters.add(new Filter("flag", index, yes, no));
                     break;
             }
@@ -224,22 +214,6 @@ public class MainViewController {
     @FXML
     private void selectNoneContigs() {
         contigsFilter.getChildren().stream().forEach((node) -> {
-            ((ToggleButton) node).setSelected(false);
-        });
-        filter();
-    }
-
-    @FXML
-    private void selectAllFilters() {
-        filtersFilter.getChildren().stream().forEach((node) -> {
-            ((ToggleButton) node).setSelected(true);
-        });
-        filter();
-    }
-
-    @FXML
-    private void selectNoneFilters() {
-        filtersFilter.getChildren().stream().forEach((node) -> {
             ((ToggleButton) node).setSelected(false);
         });
         filter();
@@ -274,7 +248,10 @@ public class MainViewController {
             data.filterId(true, idFilter.getText());
         }
         // FILTER
-        data.filterFilter(true, selectedFilters());
+//        data.filterFilter(true, selectedFilters());
+        if (!filter.getText().isEmpty()) {
+            data.filterByFilter(true, filter.getText());
+        }
         // INFOS
         for (Filter f : filters) {
             switch (f.type) {
@@ -326,21 +303,13 @@ public class MainViewController {
         return ret;
     }
 
-    private String[] selectedFilters() {
-        ArrayList<String> fs = new ArrayList<>();
-        filtersFilter.getChildren().stream().map((node)
-                -> (ToggleButton) node).filter((button)
-                        -> (button.isSelected())).forEach((button) -> {
-            fs.add(button.getText());
-        });
-        String[] ret = new String[fs.size()];
-        for (int i = 0; i < fs.size(); i++) {
-            ret[i] = fs.get(i);
-        }
-        return ret;
-    }
-
     private void restartTable() {
+        try {
+            data = parser.get();
+        } catch (InterruptedException | ExecutionException ex) {
+            Logger.getLogger(MainViewController.class.getName()).log(Level.SEVERE, null, ex);
+            return;
+        }
         TableView<Variant> table = new TableView<>(FXCollections.
                 observableArrayList(data.getVariants()));
         TableColumn<Variant, String> chrColumn = new TableColumn<>("CHR");
@@ -393,6 +362,57 @@ public class MainViewController {
         table.setSortPolicy((TableView<Variant> p) -> false);
         tableContainer.setContent(table);
         variantsTable = table;
+        lines.textProperty().unbind();
+        progress.progressProperty().unbind();
+        progress.setProgress(0);
+        lines.setText(data.getVariants().size() + " (total: " + data.getVariants().size() + ")");
+        loadContigFilters();
+//        loadFilterFilters();
+        loadInfoFilters();
+        saveButton.setDisable(false);
+    }
+
+    /**
+     * Opens a dialog to select a VCF file.
+     *
+     * @param parent The parent window to block.
+     * @return the file selected by the user, or null if the operation was canceled.
+     */
+    public static File openVCF(Window parent) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Open Variant Call Format File");
+        fileChooser.setInitialDirectory(lastPath);
+        fileChooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter(VCF_DESCRIPTION, VCF_FILTERS));
+        File file = fileChooser.showOpenDialog(parent);
+        if (file != null) {
+            lastPath = file.getParentFile();
+            return file;
+        }
+        return null;
+    }
+
+    /**
+     * Opens a dialog for the user to create a Variant Call File (.vcf). The file is not created
+     * immediately, just stored as text.
+     *
+     * @param parent the parent window to block
+     * @return the file or null if user canceled
+     */
+    public static File saveVCF(Window parent) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Save Variant Call Format File");
+        fileChooser.setInitialDirectory(lastPath);
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter(VCF_DESCRIPTION,
+                VCF_FILTERS));
+        File file = fileChooser.showSaveDialog(parent);
+        if (file != null) {
+            lastPath = file.getParentFile();
+            // Add extension to bad named files
+            return file.getAbsolutePath().endsWith(".vcf") ? file : new File(file.getAbsolutePath()
+                    + ".vcf");
+        }
+        return null;
     }
 
     class Filter {
@@ -420,4 +440,5 @@ public class MainViewController {
         }
 
     }
+
 }

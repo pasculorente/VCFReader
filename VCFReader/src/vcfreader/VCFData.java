@@ -271,7 +271,27 @@ public class VCFData {
      * @param filters a list of filters whose variants will be included in the filtered list.
      * @return a list with all the variants which passed any of the given filters.
      */
-    public List<Variant> filterFilter(boolean cache, String... filters) {
+    public List<Variant> filterFilter(boolean cache, String value) {
+        List<Variant> origin = cache ? cached : variants;
+        cached = new ArrayList<>();
+        for (Variant variant : origin) {
+            if (variant.getFilter().contains(value)) {
+                cached.add(variant);
+            }
+        }
+        return cached;
+    }
+
+    /**
+     * Filters the variants per filter. All variants with any of the filters passed by argument will
+     * be in the return variants.
+     *
+     * @param cache true if you want to use the cached variants as origin variants; false if you
+     * want to use all the variants.
+     * @param filters a list of filters whose variants will be included in the filtered list.
+     * @return a list with all the variants which passed any of the given filters.
+     */
+    public List<Variant> filterByFilter(boolean cache, String... filters) {
         List<Variant> origin = cache ? cached : variants;
         cached = new ArrayList<>();
         for (Variant variant : origin) {

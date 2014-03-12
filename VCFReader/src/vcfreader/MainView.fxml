@@ -10,7 +10,9 @@
     <HBox spacing="5.0">
       <children>
         <Label text="Variants:" />
-        <Label fx:id="lines" text="Label" />
+        <Label fx:id="lines" text="open a file" />
+        <Separator prefWidth="-1.0" visible="false" HBox.hgrow="SOMETIMES" />
+        <ProgressBar fx:id="progress" prefWidth="-1.0" progress="0.0" HBox.hgrow="ALWAYS" />
       </children>
       <BorderPane.margin>
         <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
@@ -42,39 +44,22 @@
             </TitledPane>
             <TitledPane animated="false" text="Variant">
               <content>
-                <VBox alignment="TOP_CENTER" prefHeight="200.0">
+                <VBox alignment="TOP_CENTER" prefHeight="-1.0" spacing="5.0">
                   <children>
-                    <Label text="Position" />
                     <HBox spacing="5.0">
                       <children>
-                        <TextField fx:id="posFrom" onAction="#filter" prefWidth="80.0" promptText="From" HBox.hgrow="SOMETIMES" />
-                        <TextField fx:id="posTo" onAction="#filter" prefWidth="80.0" promptText="To" HBox.hgrow="SOMETIMES" />
+                        <TextField fx:id="posFrom" onAction="#filter" prefWidth="80.0" promptText="Start" HBox.hgrow="SOMETIMES" />
+                        <TextField fx:id="posTo" onAction="#filter" prefWidth="80.0" promptText="End" HBox.hgrow="SOMETIMES" />
                       </children>
                     </HBox>
-                    <Label text="ID" />
-                    <TextField fx:id="idFilter" onAction="#filter" promptText="id" />
-                    <Label text="Quality" />
+                    <TextField fx:id="idFilter" onAction="#filter" promptText="Id" />
                     <HBox spacing="5.0">
                       <children>
-                        <TextField fx:id="qualMin" onAction="#filter" prefWidth="80.0" promptText="Min" HBox.hgrow="SOMETIMES" />
-                        <TextField fx:id="qualMax" onAction="#filter" prefWidth="80.0" promptText="Max" HBox.hgrow="SOMETIMES" />
+                        <TextField fx:id="qualMin" onAction="#filter" prefWidth="80.0" promptText="Min qual" HBox.hgrow="SOMETIMES" />
+                        <TextField fx:id="qualMax" onAction="#filter" prefWidth="80.0" promptText="Max qual" HBox.hgrow="SOMETIMES" />
                       </children>
                     </HBox>
-                  </children>
-                </VBox>
-              </content>
-            </TitledPane>
-            <TitledPane animated="false" text="Filters">
-              <content>
-                <VBox alignment="CENTER">
-                  <children>
-                    <ScrollPane fitToHeight="true" fitToWidth="true" VBox.vgrow="SOMETIMES">
-                      <content>
-                        <VBox fx:id="filtersFilter" />
-                      </content>
-                    </ScrollPane>
-                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectAllFilters" text="All" />
-                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectNoneFilters" text="None" />
+                    <TextField id="idFilter" fx:id="filter" onAction="#filter" promptText="Filter" />
                   </children>
                 </VBox>
               </content>
@@ -97,7 +82,7 @@
     <HBox spacing="5.0">
       <children>
         <Button id="openButton" mnemonicParsing="false" onAction="#openFile" text="Open" textAlignment="CENTER" />
-        <Button id="saveButton" mnemonicParsing="false" onAction="#save" text="Save" />
+        <Button fx:id="saveButton" mnemonicParsing="false" onAction="#save" text="Save" />
       </children>
       <padding>
         <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />

@@ -26,6 +26,7 @@ public class VCFDataParser extends Task<VCFData> {
     @Override
     protected VCFData call() {
         data = new VCFData();
+        int c = 0;
         try (BufferedReader br = new BufferedReader(new FileReader(vcfFile))) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -48,6 +49,9 @@ public class VCFDataParser extends Task<VCFData> {
                         }
                     }
                 } else {
+                    if (++c % 10 == 0) {
+                        updateMessage("Read " + c);
+                    }
                     data.getVariants().add(toVariant(line));
                 }
             }
