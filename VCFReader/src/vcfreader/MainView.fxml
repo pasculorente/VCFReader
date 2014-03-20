@@ -68,7 +68,11 @@
               <content>
                 <ScrollPane id="ScrollPane" fitToHeight="true" fitToWidth="true" prefViewportHeight="651.0" prefViewportWidth="166.0">
                   <content>
-                    <VBox id="" fx:id="infoFilters" alignment="TOP_CENTER" />
+                    <VBox id="" fx:id="infoFilters" alignment="TOP_CENTER" spacing="5.0">
+                      <padding>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                      </padding>
+                    </VBox>
                   </content>
                 </ScrollPane>
               </content>

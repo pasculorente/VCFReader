@@ -37,11 +37,7 @@ import javafx.stage.Window;
 public class MainViewController {
 
     @FXML
-    private TextField input;
-    @FXML
     private VBox contigsFilter;
-//    @FXML
-//    private VBox filtersFilter;
     @FXML
     private VBox infoFilters;
     @FXML
@@ -79,7 +75,6 @@ public class MainViewController {
      */
     public void initialize() {
         saveButton.setDisable(true);
-        data = new VCFData();
         lines.setText("");
         filters = new ArrayList<>();
         switch (System.getProperty("os.name")) {
@@ -221,6 +216,9 @@ public class MainViewController {
 
     @FXML
     private void filter() {
+        if (data == null) {
+            return;
+        }
         // CHROM
         data.filterChrom(false, selectedContigs());
         // POS
@@ -367,7 +365,6 @@ public class MainViewController {
         progress.setProgress(0);
         lines.setText(data.getVariants().size() + " (total: " + data.getVariants().size() + ")");
         loadContigFilters();
-//        loadFilterFilters();
         loadInfoFilters();
         saveButton.setDisable(false);
     }
