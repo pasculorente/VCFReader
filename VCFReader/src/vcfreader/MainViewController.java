@@ -248,7 +248,7 @@ public class MainViewController {
         // FILTER
 //        data.filterFilter(true, selectedFilters());
         if (!filter.getText().isEmpty()) {
-            data.filterByFilter(true, filter.getText());
+            data.filterFilter(true, filter.getText());
         }
         // INFOS
         for (Filter f : filters) {

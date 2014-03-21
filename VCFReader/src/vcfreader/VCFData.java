@@ -196,7 +196,7 @@ public class VCFData {
         List<Variant> origin = cache ? cached : variants;
         cached = new ArrayList<>();
         for (Variant variant : origin) {
-            if (variant.getId().contains(value)) {
+            if (variant.getId().matches(value)) {
                 cached.add(variant);
             }
         }
@@ -215,7 +215,7 @@ public class VCFData {
         List<Variant> origin = cache ? cached : variants;
         cached = new ArrayList<>();
         for (Variant variant : origin) {
-            if (variant.getRef().contains(value)) {
+            if (variant.getRef().matches(value)) {
                 cached.add(variant);
             }
         }
@@ -234,7 +234,7 @@ public class VCFData {
         List<Variant> origin = cache ? cached : variants;
         cached = new ArrayList<>();
         for (Variant variant : origin) {
-            if (variant.getAlt().contains(value)) {
+            if (variant.getAlt().matches(value)) {
                 cached.add(variant);
             }
         }
@@ -268,38 +268,15 @@ public class VCFData {
      *
      * @param cache true if you want to use the cached variants as origin variants; false if you
      * want to use all the variants.
-     * @param filters a list of filters whose variants will be included in the filtered list.
+     * @param value
      * @return a list with all the variants which passed any of the given filters.
      */
     public List<Variant> filterFilter(boolean cache, String value) {
         List<Variant> origin = cache ? cached : variants;
         cached = new ArrayList<>();
         for (Variant variant : origin) {
-            if (variant.getFilter().contains(value)) {
+            if (variant.getFilter().matches(value)) {
                 cached.add(variant);
-            }
-        }
-        return cached;
-    }
-
-    /**
-     * Filters the variants per filter. All variants with any of the filters passed by argument will
-     * be in the return variants.
-     *
-     * @param cache true if you want to use the cached variants as origin variants; false if you
-     * want to use all the variants.
-     * @param filters a list of filters whose variants will be included in the filtered list.
-     * @return a list with all the variants which passed any of the given filters.
-     */
-    public List<Variant> filterByFilter(boolean cache, String... filters) {
-        List<Variant> origin = cache ? cached : variants;
-        cached = new ArrayList<>();
-        for (Variant variant : origin) {
-            for (String chr : filters) {
-                if (variant.getFilter().equals(chr)) {
-                    cached.add(variant);
-                    break;
-                }
             }
         }
         return cached;
