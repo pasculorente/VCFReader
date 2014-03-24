@@ -146,18 +146,15 @@ public class VCFData {
      *
      * @param cache true if you want to use the cached variants as origin variants; false if you
      * want to use all the variants.
-     * @param chroms a list of chromosomes whose variants will be included in the filtered list.
+     * @param value a list of chromosomes whose variants will be included in the filtered list.
      * @return a list with all the variants which have any of the given chromosomes.
      */
-    public List<Variant> filterChrom(boolean cache, String... chroms) {
+    public List<Variant> filterChrom(boolean cache, String value) {
         List<Variant> origin = cache ? cached : variants;
         cached = new ArrayList<>();
         for (Variant variant : origin) {
-            for (String chr : chroms) {
-                if (variant.getChrom().equals(chr)) {
-                    cached.add(variant);
-                    break;
-                }
+            if (variant.getChrom().matches(value)) {
+                cached.add(variant);
             }
         }
         return cached;
@@ -354,6 +351,10 @@ public class VCFData {
             }
         }
         return cached;
+    }
+
+    public void reset() {
+        cached = variants;
     }
 
     /**

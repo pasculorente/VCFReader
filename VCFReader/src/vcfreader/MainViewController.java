@@ -36,30 +36,18 @@ import javafx.stage.Window;
  */
 public class MainViewController {
 
-    @FXML
-    private VBox contigsFilter;
-    @FXML
-    private VBox infoFilters;
-    @FXML
-    private TextField filter;
-    @FXML
-    private Label lines;
-    @FXML
-    private ScrollPane tableContainer;
-    @FXML
-    private TextField posFrom;
-    @FXML
-    private TextField posTo;
-    @FXML
-    private TextField idFilter;
-    @FXML
-    private TextField qualMax;
-    @FXML
-    private TextField qualMin;
-    @FXML
-    private ProgressBar progress;
-    @FXML
-    private Button saveButton;
+    @FXML private VBox infoFilters;
+    @FXML private TextField filter;
+    @FXML private Label lines;
+    @FXML private ScrollPane tableContainer;
+    @FXML private TextField chromosome;
+    @FXML private TextField posFrom;
+    @FXML private TextField posTo;
+    @FXML private TextField idFilter;
+    @FXML private TextField qualMax;
+    @FXML private TextField qualMin;
+    @FXML private ProgressBar progress;
+    @FXML private Button saveButton;
     private VCFDataParser parser;
     private VCFData data;
     private List<Filter> filters;
@@ -108,34 +96,6 @@ public class MainViewController {
     private void save() {
         File f = saveVCF(VCFReader.getStage());
         data.exportVCF(f.getAbsolutePath());
-    }
-
-    private void loadContigFilters() {
-        contigsFilter.getChildren().clear();
-//        for (String contig : data.getContigs()) {
-//            ToggleButton button = new ToggleButton(contig);
-//            button.setMaxWidth(Integer.MAX_VALUE);
-//            button.setOnAction((ActionEvent t) -> {
-//                filter();
-//            });
-//            button.setSelected(true);
-//            contigsFilter.getChildren().add(button);
-//        }
-        data.getContigs().stream().map((contig) -> new ToggleButton(contig)).
-                map((button) -> {
-            button.setMaxWidth(Integer.MAX_VALUE);
-            return button;
-        }).map((button) -> {
-            button.setOnAction((ActionEvent t) -> {
-                filter();
-            });
-            return button;
-        }).map((button) -> {
-            button.setSelected(true);
-            return button;
-        }).forEach((button) -> {
-            contigsFilter.getChildren().add(button);
-        });
     }
 
     private void loadInfoFilters() {
@@ -199,28 +159,15 @@ public class MainViewController {
     }
 
     @FXML
-    private void selectAllContigs() {
-        contigsFilter.getChildren().stream().forEach((node) -> {
-            ((ToggleButton) node).setSelected(true);
-        });
-        filter();
-    }
-
-    @FXML
-    private void selectNoneContigs() {
-        contigsFilter.getChildren().stream().forEach((node) -> {
-            ((ToggleButton) node).setSelected(false);
-        });
-        filter();
-    }
-
-    @FXML
     private void filter() {
         if (data == null) {
             return;
         }
+        data.reset();
         // CHROM
-        data.filterChrom(false, selectedContigs());
+        if (!chromosome.getText().isEmpty()) {
+            data.filterChrom(false, chromosome.getText());
+        }
         // POS
         if (!posFrom.getText().isEmpty() && !posTo.getText().isEmpty()) {
             try {
@@ -287,20 +234,6 @@ public class MainViewController {
                 getVariants().size() + ")");
     }
 
-    private String[] selectedContigs() {
-        ArrayList<String> cs = new ArrayList<>();
-        contigsFilter.getChildren().stream().map((node)
-                -> (ToggleButton) node).filter((button)
-                        -> (button.isSelected())).forEach((button) -> {
-            cs.add(button.getText());
-        });
-        String[] ret = new String[cs.size()];
-        for (int i = 0; i < cs.size(); i++) {
-            ret[i] = cs.get(i);
-        }
-        return ret;
-    }
-
     private void restartTable() {
         try {
             data = parser.get();
@@ -364,7 +297,7 @@ public class MainViewController {
         progress.progressProperty().unbind();
         progress.setProgress(0);
         lines.setText(data.getVariants().size() + " (total: " + data.getVariants().size() + ")");
-        loadContigFilters();
+//        loadContigFilters();
         loadInfoFilters();
         saveButton.setDisable(false);
     }

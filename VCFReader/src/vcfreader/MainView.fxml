@@ -27,25 +27,11 @@
       <children>
         <Accordion VBox.vgrow="SOMETIMES">
           <panes>
-            <TitledPane animated="false" text="Chromosomes">
-              <content>
-                <VBox alignment="CENTER">
-                  <children>
-                    <ScrollPane fitToHeight="true" fitToWidth="true" VBox.vgrow="SOMETIMES">
-                      <content>
-                        <VBox fx:id="contigsFilter" />
-                      </content>
-                    </ScrollPane>
-                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectAllContigs" text="All" />
-                    <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectNoneContigs" text="None" />
-                  </children>
-                </VBox>
-              </content>
-            </TitledPane>
             <TitledPane animated="false" text="Variant">
               <content>
                 <VBox alignment="TOP_CENTER" prefHeight="-1.0" spacing="5.0">
                   <children>
+                    <TextField fx:id="chromosome" onAction="#filter" prefWidth="-1.0" promptText="Chromosome" />
                     <HBox spacing="5.0">
                       <children>
                         <TextField fx:id="posFrom" onAction="#filter" prefWidth="80.0" promptText="Start" HBox.hgrow="SOMETIMES" />
